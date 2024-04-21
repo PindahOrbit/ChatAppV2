@@ -35,16 +35,16 @@ namespace ChatApp.Controllers
                 .Where(d => d.SenderId == user.Id || d.ReceiverId == user.Id)
                 .ToListAsync();
 
+            foreach (var item in chatContext)
+            {
+                item.MessageText = EncryptionHelper.Decrypt(item.MessageText);
+            }
+            var users = await _context.AspNetUsers.ToListAsync();
+
             List<ChatsViewModel> chats = new List<ChatsViewModel>();
 
-            var g1 = chatContext.Select(d => d.Sender).ToList();
-            var g2 = chatContext.Select(d => d.Receiver);
 
-             g1.AddRange(g2.ToList());
-
-            g1 = g1.DistinctBy(d => d.Id).ToList();
-
-            foreach (var item in g1)
+            foreach (var item in users)
             {
                 chats.Add(new ChatsViewModel()
                 {
@@ -102,12 +102,19 @@ namespace ChatApp.Controllers
         public async Task<IActionResult> Send(string message, string receiver)
         {
             var user = await _userManager.GetUserAsync(User);
+            // Sender signs the message
+
+            var encryptedMessage = EncryptionHelper.Encrypt(message);
+            byte[] signature = DigitalSignatureExample.SignMessage(encryptedMessage);
+
+            // Transmit the message and signature
 
             Message message1 = new Message()
             {
                 SenderId = user.Id,
                 ReceiverId = receiver,
-                MessageText =  EncryptionHelper.Encrypt( message),
+                MessageText = encryptedMessage,
+                Signature =  signature,
                 DateSend = DateTime.Now,
 
             };
@@ -128,7 +135,23 @@ namespace ChatApp.Controllers
 
             foreach (var item in chats)
             {
-                item.MessageText = EncryptionHelper.Decrypt(item.MessageText);
+
+                // Receiver verifies the signature
+                bool isSignatureValid =DigitalSignatureExample. VerifySignature(item.MessageText, item.Signature);
+                if (isSignatureValid)
+                {
+
+                    item.MessageText = EncryptionHelper.Decrypt(item.MessageText);
+                    // Signature is valid, message integrity is preserved
+                    // Process the decrypted message
+                }
+                else
+                {
+                    item.MessageText = "Not Valid";
+                    // Signature is not valid, message may have been tampered with
+                    // Handle the tampered message accordingly
+                }
+               
             }
             return chats;
         }

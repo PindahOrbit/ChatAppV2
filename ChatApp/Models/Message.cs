@@ -24,6 +24,9 @@ namespace ChatApp.Models
         public string MessageText { get; set; }
         [Column("date_send", TypeName = "datetime")]
         public DateTime DateSend { get; set; }
+        [Required]
+        [Column("signature")]
+        public byte[] Signature { get; set; }
 
         [ForeignKey("ReceiverId")]
         [InverseProperty("MessageReceivers")]

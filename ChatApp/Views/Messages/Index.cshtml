@@ -51,7 +51,7 @@
                 <form asp-action="Send"  onsubmit="return sendMessage(this, '@Url.Action("GetChats", "Messages",new { userId = "-ebd" })')">
                     <div class="input-group">
                         <input name="message" class="form-control" />
-                        <input hidden name="receiver" id="receiver" class="form-control" />
+                        <input hidden  name="receiver" id="receiver" class="form-control" />
                         <button class="btn btn-primary">Send</button>
                     </div>
                 </form>
@@ -63,7 +63,7 @@
 
 
 
-<button id="sendRequestButton">Send Request</button>
+<button hidden id="sendRequestButton">Send Request</button>
 @section Scripts{
     <script src="~/js/site.js"></script>
 
@@ -98,7 +98,7 @@
         }
         function sendMessage(form, url) {
             url = url.replace('-ebd', userId);
-
+            //alert(  document.getElementById('receiver').value)
             try {
                 $.ajax({
                     type: 'POST',
