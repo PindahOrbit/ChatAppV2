@@ -2,11 +2,14 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using ChatApp.Data;
 using ChatApp.Areas.Identity.Data;
+using ChatApp.Models;
 
 var builder = WebApplication.CreateBuilder(args);
-var connectionString = builder.Configuration.GetConnectionString("ChatAppIdentityContextConnection") ?? throw new InvalidOperationException("Connection string 'ChatAppIdentityContextConnection' not found.");
+var connectionString = builder.Configuration.GetConnectionString("ChatAppContextConnection") ?? throw new InvalidOperationException("Connection string 'ChatAppIdentityContextConnection' not found.");
 
 builder.Services.AddDbContext<ChatAppIdentityContext>(options =>
+    options.UseSqlServer(connectionString));
+builder.Services.AddDbContext<ChatContext>(options =>
     options.UseSqlServer(connectionString));
 
 builder.Services.AddDefaultIdentity<ChatAppUser>(options => options.SignIn.RequireConfirmedAccount = false)
@@ -14,7 +17,8 @@ builder.Services.AddDefaultIdentity<ChatAppUser>(options => options.SignIn.Requi
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
-
+//builder.Services.AddProgressiveWebApp();
+builder.Services.AddRazorPages();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -33,8 +37,14 @@ app.UseAuthentication();;
 
 app.UseAuthorization();
 
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
 
+app.UseEndpoints(endpoints =>
+{
+    endpoints.MapControllerRoute(
+        name: "default",
+        pattern: "{controller=Messages}/{action=Index}/{id?}");
+    endpoints.MapRazorPages();
+   // endpoints.MapBlazorHub();
+   // endpoints.MapHub<ChatHub>("/chatHub");
+});
 app.Run();

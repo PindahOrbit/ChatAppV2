@@ -1,0 +1,41 @@
+﻿@model IEnumerable<ChatApp.Models.Message>
+@inject Microsoft.AspNetCore.Identity.UserManager<ChatApp.Areas.Identity.Data.ChatAppUser> userManager;
+@{
+    Layout = null;
+}
+
+@foreach (var item in Model)
+{
+    @if (item.SenderId == userManager.GetUserId(User))
+    {
+
+        <div class="d-flex justify-content-end gap-2">
+            <small>@(item.DateSend.ToString("hh:mm"))</small>
+            <div class="card mb-2 bg-success text-white " style="width:fit-content;">
+                <div class="card-body">
+                    <p> @(item.MessageText)</p>
+
+                </div>
+            </div>
+            <div class="rounded-circle border border-success bg-success bg-opacity-50" style="height: 30px; width: 30px"></div>
+
+        </div>
+
+
+
+    }
+    else
+    {
+<div class="d-flex justify-content-start gap-2">
+
+    <div class="rounded-circle border border-secondary  bg-secondary bg-opacity-50" style="height: 30px; width: 30px"></div>
+
+    <div class="card mb-2" style="width:fit-content">
+        <div class="card-body">
+            @(item.MessageText)
+        </div>
+    </div>
+    <small>@(item.DateSend.ToString("hh:mm"))</small>
+</div>
+    }
+}

@@ -1,0 +1,123 @@
+﻿@model List<ChatsViewModel>
+@inject Microsoft.AspNetCore.Identity.UserManager<ChatApp.Areas.Identity.Data.ChatAppUser> _userManager;
+@{
+    ViewData["Title"] = "Messages";
+}
+
+
+
+
+<div class="row vh-75" style="height: 80vh">
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h3>Chats</h3>
+            </div>
+            <div class="card-body h-100 overflow-auto p-0 list-group ">
+                @*<ul class="list-group ">*@
+                @foreach (var item in Model)
+                {
+
+                    <button type="button" onclick="getData('@Url.Action("GetChats", "Messages",new { userId = item.Users.Id })','@item.Users.Id')" style="cursor:pointer" class="list-group-item d-flex justify-content-between align-items-start text-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">
+                                @(item.Users.FullName)
+                            </div>
+                            @if (item.Messages.Any())
+                            {
+                                @(string.Join("", item.Messages[0].MessageText.Take(10))+"...")
+                            }
+                        </div>
+                        <span class="badge text-bg-primary rounded-pill">14</span>
+                    </button>
+
+
+                }
+                @*</ul>*@
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card h-100">
+            <div class="card-header">
+                <h3>Messages</h3>
+            </div>
+            <div class="card-body overflow-auto" style="max-height:700px">
+                <div id="resultDiv">
+                    <h2>Click a chat to start...</h2>
+                </div>
+            </div>
+            <div class="card-footer">
+                <form asp-action="Send"  onsubmit="return sendMessage(this, '@Url.Action("GetChats", "Messages",new { userId = "-ebd" })')">
+                    <div class="input-group">
+                        <input name="message" class="form-control" />
+                        <input hidden name="receiver" id="receiver" class="form-control" />
+                        <button class="btn btn-primary">Send</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+
+
+<button id="sendRequestButton">Send Request</button>
+@section Scripts{
+    <script src="~/js/site.js"></script>
+
+
+    <script>
+
+        var userId = "";
+        function getData(url, id) {
+            userId = id;
+
+            document.getElementById('receiver').value = userId;
+            $.ajax({
+                url: url, // Replace YourAction and YourController with your actual action and controller names
+                type: 'GET',
+
+                success: function (response) {
+                    $("#resultDiv").html(response); // Update the resultDiv with the response
+                },
+                error: function (xhr, status, error) {
+                    alert(xhr.responseText); // Log any errors to the console
+                }
+            });
+
+         
+        }
+        function sendMessage(form, url) {
+            url = url.replace('-ebd', userId);
+
+            alert(url);
+
+            try {
+                $.ajax({
+                    type: 'POST',
+                    url: form.action,
+                    data: new FormData(form),
+                    contentType: false,
+                    processData: false,
+                    success: function (res) {
+                        //getData(url);
+                        $("#resultDiv").html(res);
+                    },
+                    error: function (err) {
+                        alert(err)
+                    }
+                })
+                //to prevent default form submit event
+                return false;
+            }
+            catch (ex) {
+                alert(ex)
+
+            }
+
+        }
+
+    </script>
+}
