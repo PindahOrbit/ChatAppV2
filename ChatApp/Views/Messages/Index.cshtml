@@ -67,13 +67,18 @@
 @section Scripts{
     <script src="~/js/site.js"></script>
 
-
     <script>
+        
+  
 
         var userId = "";
+        var urlMain = "";
+      
         function getData(url, id) {
+           /* setInterval(getData(urlMain), 2000);*/
             userId = id;
-
+            urlMain = url;
+            console.log(url);
             document.getElementById('receiver').value = userId;
             $.ajax({
                 url: url, // Replace YourAction and YourController with your actual action and controller names
@@ -81,6 +86,8 @@
 
                 success: function (response) {
                     $("#resultDiv").html(response); // Update the resultDiv with the response
+                 
+                    $("#resultDiv").scrollTop = $("#resultDiv").scrollHeight - $("#resultDiv").clientHeight;
                 },
                 error: function (xhr, status, error) {
                     alert(xhr.responseText); // Log any errors to the console
@@ -91,8 +98,6 @@
         }
         function sendMessage(form, url) {
             url = url.replace('-ebd', userId);
-
-            alert(url);
 
             try {
                 $.ajax({
@@ -106,6 +111,7 @@
                         $("#resultDiv").html(res);
                     },
                     error: function (err) {
+                        getData(url);
                         alert(err)
                     }
                 })
@@ -118,6 +124,6 @@
             }
 
         }
-
+       
     </script>
 }

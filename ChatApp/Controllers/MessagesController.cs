@@ -64,8 +64,7 @@ namespace ChatApp.Controllers
         {
 
             var user = await _userManager.GetUserAsync(User);
-            var chats = await _context.Messages.Where(d => d.SenderId == userId || d.ReceiverId == userId).ToListAsync();
-           // chats = await _context.Messages.Where(d => d.SenderId == user.Id || d.ReceiverId == user.Id).ToListAsync();
+            var chats = await GetChatsList(userId);
             return View(chats);
         }
 
@@ -108,7 +107,7 @@ namespace ChatApp.Controllers
             {
                 SenderId = user.Id,
                 ReceiverId = receiver,
-                MessageText = message,
+                MessageText =  EncryptionHelper.Encrypt( message),
                 DateSend = DateTime.Now,
 
             };
@@ -116,10 +115,22 @@ namespace ChatApp.Controllers
             _context.Add(message1);
             await _context.SaveChangesAsync();
 
-            var chats = await _context.Messages.Where(d => d.SenderId == receiver || d.ReceiverId == receiver).ToListAsync();
-            // chats = await _context.Messages.Where(d => d.SenderId == user.Id || d.ReceiverId == user.Id).ToListAsync();
+            var chats = await GetChatsList(receiver);
+// chats = await _context.Messages.Where(d => d.SenderId == user.Id || d.ReceiverId == user.Id).ToListAsync();
 
             return View("GetChats",chats);
+        }
+
+        private async Task<List<Message>> GetChatsList(string receiver)
+        {
+
+            var chats = await _context.Messages.Where(d => d.SenderId == receiver || d.ReceiverId == receiver).ToListAsync();
+
+            foreach (var item in chats)
+            {
+                item.MessageText = EncryptionHelper.Decrypt(item.MessageText);
+            }
+            return chats;
         }
 
         // POST: Messages/Create
