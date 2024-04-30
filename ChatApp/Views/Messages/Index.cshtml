@@ -52,7 +52,7 @@
                     <div class="input-group">
                         <input name="message" class="form-control" />
                         <input hidden  name="receiver" id="receiver" class="form-control" />
-                        <button class="btn btn-primary">Send</button>
+                        <button class="btn btn-primary">Send And Encrypt</button>
                     </div>
                 </form>
             </div>
@@ -97,6 +97,9 @@
          
         }
         function sendMessage(form, url) {
+
+           
+
             url = url.replace('-ebd', userId);
             //alert(  document.getElementById('receiver').value)
             try {

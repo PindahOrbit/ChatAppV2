@@ -4,6 +4,7 @@ using ChatApp.Data;
 using ChatApp.Areas.Identity.Data;
 using ChatApp.Models;
 
+
 var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("ChatAppContextConnection") ?? throw new InvalidOperationException("Connection string 'ChatAppIdentityContextConnection' not found.");
 

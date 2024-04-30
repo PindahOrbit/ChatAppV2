@@ -1,20 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
+﻿using ChatApp.Areas.Identity.Data;
 using ChatApp.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
-using ChatApp.Areas.Identity.Data;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
 
 namespace ChatApp.Controllers
 {
     [Authorize]
     public class MessagesController : Controller
     {
+        public byte[] key = Convert.FromBase64String("2OF6VvT0wiAqnAgjvlHgjIEvnb+csHZHVakiEVxp8yA=");
+        public byte[] iv = Convert.FromBase64String("qqp2Zv5aKGJD5YlES4VmWw==");
         private readonly ChatContext _context;
         private readonly UserManager<ChatAppUser> _userManager;
 
@@ -27,8 +26,18 @@ namespace ChatApp.Controllers
         // GET: Messages
         public async Task<IActionResult> Index()
         {
-           
-            var user  = await _userManager.GetUserAsync(User);
+
+         
+            var user = await _userManager.GetUserAsync(User);
+            
+            var __users = await _userManager.Users.ToListAsync();
+
+            foreach (var item in __users)
+            {
+                await GenerateKeyPairAsync(item);
+
+            }
+
             var chatContext = await _context.Messages
                 .Include(m => m.Receiver)
                 .Include(m => m.Sender)
@@ -37,7 +46,7 @@ namespace ChatApp.Controllers
 
             foreach (var item in chatContext)
             {
-                item.MessageText = EncryptionHelper.Decrypt(item.MessageText);
+          //      item.MessageText = EncryptionHelper.DecryptMessage(item.MessageText, key, iv);
             }
             var users = await _context.AspNetUsers.ToListAsync();
 
@@ -57,14 +66,14 @@ namespace ChatApp.Controllers
 
 
 
-            return View(chats.Where(d=>d.Users.Id != user.Id).ToList());
+            return View(chats.Where(d => d.Users.Id != user.Id).ToList());
         }
 
         public async Task<IActionResult> GetChats(string userId)
         {
 
             var user = await _userManager.GetUserAsync(User);
-            var chats = await GetChatsList(userId);
+            var chats = await GetChatsList(userId,user);
             return View(chats);
         }
 
@@ -102,19 +111,23 @@ namespace ChatApp.Controllers
         public async Task<IActionResult> Send(string message, string receiver)
         {
             var user = await _userManager.GetUserAsync(User);
-            // Sender signs the message
+            var receiverPublicKey = (await _userManager.FindByIdAsync(receiver)).SecurityStamp;
+            var assUser = await _context.AspNetUsers.FirstOrDefaultAsync(d => d.Id == user.Id);
+            // Encrypt the message
+            byte[] encryptedMessage = EncryptionHelper.Encrypt(message, receiverPublicKey);
+            var signature = EncryptionHelper.SignData(encryptedMessage, user.PhoneNumber);
+            string encryptedMessageString = Convert.ToBase64String(encryptedMessage);
 
-            var encryptedMessage = EncryptionHelper.Encrypt(message);
-            byte[] signature = DigitalSignatureExample.SignMessage(encryptedMessage);
-
-            // Transmit the message and signature
+           // var privateKey = GetSenderPrivateKey(assUser);
+            //sign message
+           
 
             Message message1 = new Message()
             {
                 SenderId = user.Id,
                 ReceiverId = receiver,
-                MessageText = encryptedMessage,
-                Signature =  signature,
+                MessageText = encryptedMessageString,
+                Signature = signature,
                 DateSend = DateTime.Now,
 
             };
@@ -122,26 +135,32 @@ namespace ChatApp.Controllers
             _context.Add(message1);
             await _context.SaveChangesAsync();
 
-            var chats = await GetChatsList(receiver);
-// chats = await _context.Messages.Where(d => d.SenderId == user.Id || d.ReceiverId == user.Id).ToListAsync();
+            var chats = await GetChatsList(receiver,user);
+            // chats = await _context.Messages.Where(d => d.SenderId == user.Id || d.ReceiverId == user.Id).ToListAsync();
 
-            return View("GetChats",chats);
+            return View("GetChats", chats);
         }
 
-        private async Task<List<Message>> GetChatsList(string receiver)
+        private async Task<List<Message>> GetChatsList(string receiver, ChatAppUser user)
         {
 
-            var chats = await _context.Messages.Where(d => d.SenderId == receiver || d.ReceiverId == receiver).ToListAsync();
+            var chats = await _context.Messages
+                .Include(d=>d.Sender)
+                .Include(d=>d.Receiver)
+                .AsNoTracking().Where(d => d.SenderId == receiver || d.ReceiverId == receiver).ToListAsync();
 
             foreach (var item in chats)
             {
 
                 // Receiver verifies the signature
-                bool isSignatureValid =DigitalSignatureExample. VerifySignature(item.MessageText, item.Signature);
+                string receiverPublicKey = item.Sender.SecurityStamp;
+                bool isSignatureValid =EncryptionHelper. VerifySignature(item.MessageText, item.Signature, receiverPublicKey);
+
                 if (isSignatureValid)
                 {
-
-                    item.MessageText = EncryptionHelper.Decrypt(item.MessageText);
+                    var key = item.SenderId != user.Id ? item.Receiver.PhoneNumber : item.Receiver.PhoneNumber;
+                    var byteM = Convert.FromBase64String(item.MessageText);
+                     item.MessageText = EncryptionHelper.Decrypt(byteM,key);
                     // Signature is valid, message integrity is preserved
                     // Process the decrypted message
                 }
@@ -151,7 +170,7 @@ namespace ChatApp.Controllers
                     // Signature is not valid, message may have been tampered with
                     // Handle the tampered message accordingly
                 }
-               
+
             }
             return chats;
         }
@@ -263,14 +282,58 @@ namespace ChatApp.Controllers
             {
                 _context.Messages.Remove(message);
             }
-            
+
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 
+
+        // Generate RSA key pair for a user
+        public async Task GenerateKeyPairAsync(ChatAppUser user)
+        {
+
+         
+
+            if (user.EmailConfirmed ==false)
+            {
+
+                using (RSA rsa = RSA.Create())
+                {
+                    // Generate key pair
+                    RSAParameters privateKey = rsa.ExportParameters(true);
+                    RSAParameters publicKey = rsa.ExportParameters(false);
+               
+                    // Convert keys to XML strings (for simplicity, you can choose other formats)
+                    string privateKeyXml = rsa.ToXmlString(true);
+                    string publicKeyXml = rsa.ToXmlString(false);
+
+                    // Store keys in user's record
+                    user.SecurityStamp = publicKeyXml;
+                    user.PhoneNumber = privateKeyXml;
+                    user.EmailConfirmed = true;
+                    // Update user record in the database
+                    await _userManager.UpdateAsync(user);
+                }
+            }
+        }
+        public RSAParameters GetSenderPrivateKey(AspNetUser user)
+        {
+            // Retrieve the user from the database
+
+            // Convert public key XML string to RSAParameters
+            RSAParameters senderPrivateKey;
+            using (RSACryptoServiceProvider rsa = new RSACryptoServiceProvider())
+            {
+                rsa.FromXmlString(user.PhoneNumber);
+                senderPrivateKey = rsa.ExportParameters(false); // Export public key
+            }
+
+            return senderPrivateKey;
+        }
+
         private bool MessageExists(int id)
         {
-          return _context.Messages.Any(e => e.Id == id);
+            return _context.Messages.Any(e => e.Id == id);
         }
     }
 }

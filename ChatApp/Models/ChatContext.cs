@@ -81,13 +81,13 @@ namespace ChatApp.Models
                     .WithMany(p => p.MessageReceivers)
                     .HasForeignKey(d => d.ReceiverId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK__Messages__Receiv__5EBF139D");
+                    .HasConstraintName("FK__Messages__Receiv__76969D2E");
 
                 entity.HasOne(d => d.Sender)
                     .WithMany(p => p.MessageSenders)
                     .HasForeignKey(d => d.SenderId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK__Messages__Sender__5DCAEF64");
+                    .HasConstraintName("FK__Messages__Sender__75A278F5");
             });
 
             OnModelCreatingPartial(modelBuilder);
