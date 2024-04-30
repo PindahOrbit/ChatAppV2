@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
+using System.Text;
 
 namespace ChatApp.Controllers
 {
@@ -110,6 +111,15 @@ namespace ChatApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Send(string message, string receiver)
         {
+            try
+            {
+                message = Encoding.UTF8.GetString(Convert.FromBase64String(message));
+
+            }
+            catch (Exception)
+            {
+                message = "---Message Tempered with during transmission. MiM attack ALERT---";
+            }
             var user = await _userManager.GetUserAsync(User);
             var receiverPublicKey = (await _userManager.FindByIdAsync(receiver)).SecurityStamp;
             var assUser = await _context.AspNetUsers.FirstOrDefaultAsync(d => d.Id == user.Id);

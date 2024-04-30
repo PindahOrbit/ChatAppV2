@@ -50,7 +50,7 @@
             <div class="card-footer">
                 <form asp-action="Send"  onsubmit="return sendMessage(this, '@Url.Action("GetChats", "Messages",new { userId = "-ebd" })')">
                     <div class="input-group">
-                        <input name="message" class="form-control" />
+                        <input name="message" id="message" class="form-control" />
                         <input hidden  name="receiver" id="receiver" class="form-control" />
                         <button class="btn btn-primary">Send And Encrypt</button>
                     </div>
@@ -99,7 +99,10 @@
         function sendMessage(form, url) {
 
            
+            var message = document.getElementById('message').value;
 
+            const encodedMessage = btoa(unescape(encodeURIComponent(message)));
+            document.getElementById('message').value = encodedMessage;
             url = url.replace('-ebd', userId);
             //alert(  document.getElementById('receiver').value)
             try {
@@ -112,6 +115,7 @@
                     success: function (res) {
                         //getData(url);
                         $("#resultDiv").html(res);
+                        document.getElementById('message').value = '';
                     },
                     error: function (err) {
                         getData(url);
